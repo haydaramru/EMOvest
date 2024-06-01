@@ -1,11 +1,3 @@
-// TODO
-/*
-- voice call
-- tele
-- wa api
-- Implement HC-SR04
-*/
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -90,43 +82,99 @@ void sendSMS() {
 	Serial.println("SMS Message Sent.");
 }
 
+void makeCall() {
+	Serial.println("Making a call...");
+	A9G.print("ATD+6285801334968;\r"); // Replace phone number
+	delay(1000);
+	Serial.println("Call initiated.");
+}
+
+// ------- HC-SR04 Setup -------
+const int trigPin = 2;
+const int echoPin = 4;
+long duration, distance;
+
+// Message sending control variables
+int messageCount = 0;
+bool startSending = false;
+
 void setup() {
 	Serial.begin(115200);
 	A9G.begin(GPSBaud);
 	
-	Serial.println("Starting...");
-	delay(10000);
-	A9G.println("AT\r");             // check communication with the module
-	delay(1000);
-	A9G.println("AT+CGATT=1\r");     // attach to GPRS service
-	delay(10000);
-	A9G.println("AT+CGDCONT=1,\"IP\",\"WWW\"\r");  // set the APN for the GPRS context
-  	delay(4000);
-  	A9G.println("AT+CGACT=1,1\r");   // activate the GPRS context
-  	delay(5000);
-	A9G.println("AT+GPS=1\r");       // turn on the GPS
-	delay(4000);
-  	A9G.println("AT+GPSRD=10\r");    // start continuous GPS reading every 10 seconds
-  	delay(5000);
-  	A9G.println("AT+CMGF=1\r");      // set the SMS mode to text
-  	delay(1000);
+	// HC-SR04 Init
+	pinMode(trigPin, OUTPUT);
+	pinMode(echoPin, INPUT);
+	
+	// Wi-Fi Init
+	WiFi.begin(ssid, password);
+  	Serial.println("Connecting WiFi...");
+  	while(WiFi.status() != WL_CONNECTED) {
+		delay(500);
+    	Serial.print(".");
+	}
+  	Serial.println("");
+  	Serial.print("Connected to WiFi network with IP Address: ");
+  	Serial.println(WiFi.localIP());
+
+	// A9G Init
+  	Serial.println("Initialize A9G...");
+  	delay(10000);
+  	sendCommand("AT\r", 1000);								// check communication with the module
+  	sendCommand("AT+CGATT=1\r", 10000);						// attach to GPRS service
+  	sendCommand("AT+CGDCONT=1,\"IP\",\"WWW\"\r", 4000);		// set the APN for the GPRS context
+  	sendCommand("AT+CGACT=1,1\r", 5000);					// activate the GPRS context
+  	sendCommand("AT+GPS=1\r", 4000);						// turn on the GPS
+  	sendCommand("AT+GPSRD=10\r", 5000);						// start continuous GPS reading every 10 seconds
+  	sendCommand("AT+CMGF=1\r", 1000);						// set the SMS mode to text
 
   	Serial.println("Setup Executed.");
 }
 
 void loop() {
-	smartDelay(2000);
-  	if (millis() > 5000 && gps.charsProcessed() < 10) {
-		Serial.println(F("No GPS data received: check wiring"));
-	}
+	// Read distance from HC-SR04
+	digitalWrite(trigPin, LOW);
+	delayMicroseconds(4);
+	digitalWrite(trigPin, HIGH);
+	delayMicroseconds(10);
+	digitalWrite(trigPin, LOW);
+  	duration = pulseIn(echoPin, HIGH);
+	distance = duration * 0.034 / 2;
+	Serial.print("Distance: ");
+  	Serial.print(distance);
+  	Serial.println(" cm");
 
-	prepareGPSPayload();
+	unsigned long currentMillis = millis();
 
-  	unsigned long currentMillis = millis();
+	// Check if distance is less than 20 cm
+  	if (distance < 20) {
+		startSending = true;
+		messageCount = 0; // Reset message count when the condition is first met
+  	}
 
-  	if ((unsigned long)(currentMillis - previousMillis) >= interval) {
+	if (startSending && messageCount < 5 && (currentMillis - previousMillis >= interval)) {
+		smartDelay(2000);
+		if (millis() > 5000 && gps.charsProcessed() < 10) {
+			Serial.println(F("No GPS data received: check wiring"));
+		}
+		
+		prepareGPSPayload();
 		sendSMS();
 		sendWhatsApp(waMessage);
+		makeCall();
+
 		previousMillis = currentMillis;
-  	}
+		messageCount++;
+		if (messageCount >= 5) {	// Stop sending after 5 messages
+			startSending = false;
+		}
+	}
+}
+
+void sendCommand(String command, unsigned long waitTime) {	// send AT command to A9G module
+	A9G.println(command);
+	delay(waitTime);
+	while (A9G.available()) {
+		Serial.write(A9G.read());
+	}
 }
