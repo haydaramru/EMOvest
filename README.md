@@ -5,4 +5,4 @@
 
 ## Getting Started
 
-This project is a starting point for a Arduino IDE application.
+This project is a starting point for an Arduino IDE application.
