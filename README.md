@@ -6,7 +6,7 @@
 </div>
 <div align="center">
   <h1> EMO-vest </h1>
-  <p><i> Futuristic Vest as Epilepsy Detector with Airguard Protecting Based on IoT <i></p>
+  <p> Futuristic Vest as Epilepsy Detector with Airguard Protecting Based on IoT </p>
 </div>
 <br>
 
