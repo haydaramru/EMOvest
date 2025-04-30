@@ -22,9 +22,8 @@ Epilepsi adalah kondisi neurologis dengan gejala utama berupa kejang dan kehilan
 
 <a href="https://youtu.be/NROLJrA94yM?si=lKHp4SmtjSQQmYMZ"><img src="./assets/video-presentasi-thumbnail.jpg" /></a>
 
-## 📝 &nbsp;Dokumentasi
-
-// TODO: add docs
+## 📸 &nbsp;Dokumentasi
+![EMOvest](assets/emovest.jpeg)
 
 ## 👥 &nbsp;Kontributor
 - Frengki Prabowo Saputro Wijayanto
